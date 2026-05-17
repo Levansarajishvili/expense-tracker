@@ -7,38 +7,56 @@ const descriptionEl = document.getElementById("description");
 const amountEl = document.getElementById("amount");
 
 let transactions = JSON.parse(localStorage.getItem("transactions")) || [];
+let currentCurrency = localStorage.getItem("currency") || "USD";
+
+// GEL vs USD ლარის გაცვლითი კურსი – შეგიძლიათ განაახლოთ ეს კურსი საჭიროებისამებრ
+const GEL_RATE = 2.68;
 
 transactionFormEl.addEventListener("submit", addTransaction);
 
+const currencyToggleBtn = document.getElementById("currency-toggle");
+if (currencyToggleBtn) {
+    updateToggleButton();
+    currencyToggleBtn.addEventListener("click", () => {
+        currentCurrency = currentCurrency === "USD" ? "GEL" : "USD";
+        localStorage.setItem("currency", currentCurrency);
+        updateToggleButton();
+        updateTransactionList();
+        updateSummary();
+    });
+}
+
+function updateToggleButton() {
+    if (currencyToggleBtn) {
+        currencyToggleBtn.textContent =
+            currentCurrency === "USD" ? "Switch to GEL ₾" : "Switch to USD $";
+    }
+}
+
 function addTransaction(e) {
     e.preventDefault();
-
     const description = descriptionEl.value.trim();
-    const amount = parseFloat(amountEl.value);
 
-    transactions.push({
-        id:Date.now(),
-        description,
-        amount
-    })
 
-    localStorage.setItem("transactions",JSON.stringify(transactions))
+    let amount = parseFloat(amountEl.value);
+    if (currentCurrency === "GEL") {
+        amount = amount / GEL_RATE;
+    }
 
-    updateTransactionList()
-    updateSummary()
-
-    transactionFormEl.reset()
+    transactions.push({ id: Date.now(), description, amount });
+    localStorage.setItem("transactions", JSON.stringify(transactions));
+    updateTransactionList();
+    updateSummary();
+    transactionFormEl.reset();
 }
 
 function updateTransactionList() {
-    transactionListEl.innerHTML = ""
-
-    const sortedTransactions = [...transactions].reverse()
-
+    transactionListEl.innerHTML = "";
+    const sortedTransactions = [...transactions].reverse();
     sortedTransactions.forEach((transaction) => {
-        const transactionEl = createTransactionElement(transaction)
-        transactionListEl.appendChild(transactionEl)
-    })
+        const transactionEl = createTransactionElement(transaction);
+        transactionListEl.appendChild(transactionEl);
+    });
 }
 
 function createTransactionElement(transaction) {
@@ -46,34 +64,43 @@ function createTransactionElement(transaction) {
     li.classList.add("transaction");
     li.classList.add(transaction.amount > 0 ? "income" : "expense");
 
+    const displayAmount = convertAmount(transaction.amount);
+
     li.innerHTML = `
     <span>${transaction.description}</span>
-
     <span>
-    ${formatCurrency(transaction.amount)}
-    <button class="delete-btn" onclick="removeTransaction(${transaction.id})">x</button>
+      ${formatCurrency(displayAmount)}
+      <button class="delete-btn" onclick="removeTransaction(${transaction.id})">x</button>
     </span>
     `;
-    return li
+    return li;
 }
 
 function updateSummary() {
-    const balance = transactions.reduce((acc, transaction) => acc + transaction.amount, 0);
-
+    const balance = transactions.reduce((acc, t) => acc + t.amount, 0);
     const income = transactions
-    .filter((transaction) => transaction.amount > 0)
-    .reduce((acc, transaction) => acc + transaction.amount, 0);
-
+        .filter((t) => t.amount > 0)
+        .reduce((acc, t) => acc + t.amount, 0);
     const expenses = transactions
-    .filter((transaction) => transaction.amount < 0)
-    .reduce((acc, transaction) => acc + transaction.amount, 0);
+        .filter((t) => t.amount < 0)
+        .reduce((acc, t) => acc + t.amount, 0);
 
-    balanceEl.textContent = balance;
-    incomeAmountEl.textContent = income;
-    expenseAmountEl.textContent = expenses;
-}  
+    balanceEl.textContent = formatCurrency(convertAmount(balance));
+    incomeAmountEl.textContent = formatCurrency(convertAmount(income));
+    expenseAmountEl.textContent = formatCurrency(convertAmount(expenses));
+}
+
+function convertAmount(usdAmount) {
+    return currentCurrency === "GEL" ? usdAmount * GEL_RATE : usdAmount;
+}
 
 function formatCurrency(number) {
+    if (currentCurrency === "GEL") {
+        return new Intl.NumberFormat("ka-GE", {
+            style: "currency",
+            currency: "GEL",
+        }).format(number);
+    }
     return new Intl.NumberFormat("en-US", {
         style: "currency",
         currency: "USD",
@@ -81,10 +108,8 @@ function formatCurrency(number) {
 }
 
 function removeTransaction(id) {
-    transactions = transactions.filter(transaction => transaction.id !== id);
-
+    transactions = transactions.filter((t) => t.id !== id);
     localStorage.setItem("transactions", JSON.stringify(transactions));
-
     updateTransactionList();
     updateSummary();
 }
