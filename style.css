@@ -250,6 +250,7 @@ small {
     color: #718096;
     font-size: 0.875rem;
     margin-top: 4px;
+    margin-bottom: 7px;
     display: block;
 }
 
@@ -274,6 +275,29 @@ button[type="submit"]:hover {
 } 
 
 button[type="submit"]:active {
+   transform: translateY(0);
+}
+
+.currency-button {
+    padding: 7px;
+ background: linear-gradient(135deg, #2e8b57 0%, #3cb371 100%);
+ color: #fff;
+ border: none;
+ border-radius: 8px;
+ cursor: pointer;
+ font-size: 1rem;
+ font-weight: 500;
+ transition: all 0.2s ease;
+ box-shadow: 0 4px 12px rgba(102,126,234,0.2);
+ margin-top: auto; 
+}
+
+.currency-button:hover {
+    transform: translateY(-2px);
+     box-shadow: 0 6px 16px rgba(102,126,234,0.3);
+} 
+
+.currency-button:active {
    transform: translateY(0);
 }
 
